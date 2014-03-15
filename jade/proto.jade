@@ -1,0 +1,204 @@
+
+mixin quizPages(basename)
+  .page1(ng-switch-when='1')
+    .big-image.image-switcher
+      img(ng-src='{{ #{basename}.term.images[#{basename}.term.showImage] }}')
+    .input
+      input(ng-model='#{basename}.name', placeholder='Type name here (spelling counts!)', ng-keydown='inputKeyDown($event, #{basename})')
+    .choices
+      .btn.btn-primary(ng-click='quizNewPicture(#{basename}.term)') New Picture
+      .btn.btn-primary(ng-click='quizGiveUp(#{basename})') Give Up
+      .btn.btn-primary(ng-click='quizCheck(#{basename})') Check
+  .page2(ng-switch-when='2')
+    .left-col
+      .name-result(ng-switch='#{basename}.name.toLowerCase().trim() === #{basename}.term.name.toLowerCase().trim()')
+        .correct(ng-switch-when='true') You got the name right!
+        .incorrect(ng-switch-default, ng-switch='!!#{basename}.name')
+          span Incorrect
+          div(ng-switch-when='true') You said {{ #{basename}.name }}
+          div(ng-switch-default) You skipped the name
+      .spacer
+      .function-choices
+        p.title Now select a function
+        .function-choice.btn.btn-primary(ng-repeat='desc in #{basename}.term.testDescriptions track by $index', ng-click='quizChooseFunction(#{basename}, desc)', ng-class='{disabled: #{basename}.hinting[$index]}')
+          span.letter {{ 'ABCD'[$index] }}
+          span.description {{ desc }}
+    .right-col
+      .big-image
+        img(ng-src='{{ #{basename}.term.images[#{basename}.term.showImage] }}')
+        p.name {{ #{basename}.term.name }}
+      .options
+        .btn.btn-primary(ng-click='quizGiveUpFunction(#{basename})') Give Up
+        .btn.btn-primary(ng-click='quizHintFunction(#{basename})', ng-disabled='hinting') Hint
+  .page3(ng-switch-when='3')
+    .left-col
+      .big-image.image-switcher
+        img(ng-src="{{ #{basename}.term.images[#{basename}.term.showImage] }}", ng-click='showQOverImage(#{basename})')
+        .next-btn.glyphicon.glyphicon-chevron-right(ng-click='nextImage(#{basename}.term, "showImage")')
+        .prev-btn.glyphicon.glyphicon-chevron-left(ng-click='prevImage(#{basename}.term, "showImage")')
+      .quiz-over-back(ng-click="hideQOverImage(#{basename})", ng-show='#{basename}.showingOverImage')
+      .quiz-over-image.image-switcher(ng-show='#{basename}.showingOverImage')
+        img(ng-src="{{ #{basename}.term.images[#{basename}.term.showImage] }}")
+        .next-btn.glyphicon.glyphicon-chevron-right(ng-click='nextImage(#{basename}.term, "showImage")')
+        .prev-btn.glyphicon.glyphicon-chevron-left(ng-click='prevImage(#{basename}.term, "showImage")')
+      .quiz-results
+        .title Quiz Results
+        .name
+          span.title Name:
+          span.result(ng-switch='#{basename}.name.toLowerCase().trim() === #{basename}.term.name.toLowerCase().trim()')
+            span.incorrect(ng-switch-default)
+              span.what Incorrect
+              span(ng-switch='!!#{basename}.name.trim()')
+                span(ng-switch-default) You skipped the name
+                span(ng-switch-when='true') You entered
+                  span.youranswer "{{ #{basename}.name }}"
+            span.correct(ng-switch-when='true')
+              span.what Correct!
+        .function
+          span.title Function:
+          span.result(ng-switch='#{basename}.description === #{basename}.term.description')
+            span.incorrect(ng-switch-default)
+              span.what Incorrect
+              span(ng-switch='!!#{basename}.description')
+                span(ng-switch-default) You skipped the description
+                span(ng-switch-when='true') You picked
+                  span.youranswer "{{ #{basename}.term.description }}"
+            span.correct(ng-switch-when='true')
+              span.what Correct!
+      .options
+        .btn.btn-primary(ng-click='nextTerm(#{basename})') Next Term
+        .btn.btn-default.pull-right(ng-click='toggleMasteredQuiz(#{basename}.term)', ng-class='{active: #{basename}.term.mastered}', ng-switch='#{basename}.term.mastered')
+          span(ng-switch-default) Not yet mastered
+          span(ng-switch-when='true') You've Mastered It!
+    .right-col
+      .name {{ #{basename}.term.name }}
+      .function {{ #{basename}.term.description }}
+      .info
+        textarea(spellcheck='false', ng-model='#{basename}.term.moreInfo')
+
+
+
+div#main(ng-controller="MainController")
+  .over-bar
+    .midterm-indicator(ng-show='page == "Midterm"')
+      | Midterm
+      .btn.btn-primary(ng-click='newMidterm()', ng-show="midtermStatus") New
+    .select-dropdown(ng-class='{ opened: opened }', ng-hide='page == "Midterm"')
+      .item.selected-item(ng-click='opened = !opened')
+        span.name {{ focusedQuiz.name }}
+        span.date {{ focusedQuiz.date }}
+        i.glyphicon.glyphicon-chevron-down.down-icon
+      ul.dropdown
+        li.item(ng-repeat='quiz in quizes', ng-class="{ selected: quiz.num == focusedQuiz.num }", ng-click='switchToQuiz(quiz)')
+          | {{ quiz.name }}
+          span.date {{ quiz.date }}
+    span.mastered
+      .middle(ng-show='page !== "Midterm" || midtermStatus')
+        | {{ numMastered(page !== 'Midterm' ? 'quiz' : 'midterm') }} / {{ numTerms(page !== 'Midterm' ? 'quiz' : 'midterm' ) }} Mastered
+        .btn.btn-default.clear-btn(ng-click="clearMastered(page !== 'Midterm' ? 'quiz' : 'midterm')") Clear
+    a.logout
+      | Logout
+  .very-top
+    span.nav-row
+      .btn(ng-click="setPage(name)", ng-repeat="name in pages", ng-class="{ active: name === page }") {{ name }}
+  .container-fluid(ng-switch="page")
+    .home.page(ng-switch-when="Home")
+      .top-bar
+        input.search(ng-model="main.search", placeholder='Search...')
+        .btn-group
+          .btn.btn-default(ng-repeat='f in filters', ng-click='filterBy(f)', ng-class='{ active: f.name == main.filter }') {{ f.title }}
+        .btn.btn-default(ng-switch="listMode", ng-click="toggleListMode()")
+          span(ng-switch-default) Pictures
+          span(ng-switch-when="pictures") Terms
+      .terms-list
+        .left-side(ng-switch="listMode")
+            .pictures(ng-switch-when="pictures")
+              .picture(ng-repeat="term in terms | filter:filterTerms | orderBy:'name'", ng-click="showMoreInfo(term)", ng-class="{selected: moreInfo === term}")
+                img(ng-src="{{ term.images[0] }}")
+                .name {{ term.name }}
+                i.mastered.glyphicon.glyphicon-ok(ng-show="term.mastered")
+            table(ng-switch-default)
+              tbody
+                tr(ng-repeat="term in terms | filter:filterTerms | orderBy:'name'", ng-click="showMoreInfo(term)", ng-class="{selected: moreInfo === term}")
+                  td.name {{ term.name }}
+                  td.description {{ term.description }}
+                  td.mastered
+                    i.glyphicon.glyphicon-ok(ng-show="term.mastered")
+        .more-info(ng-show="moreInfo")
+          .close-btn(ng-click="closeMoreInfo()") &times;
+          .mastered-btn.btn.btn-default(ng-class="{ active: moreInfo.mastered }", ng-switch="moreInfo.mastered", ng-click="toggleMasteredHome(moreInfo)")
+            .span(ng-switch-when="true") Mastered
+            .span(ng-switch-default) Not yet mastered
+          .title {{ moreInfo.name }}
+          .info
+            .big-image.image-switcher
+              img(ng-src="{{ moreInfo.images[moreInfo.selImage] }}", ng-click='showOverImage()')
+              .next-btn.glyphicon.glyphicon-chevron-right(ng-click='nextImage(moreInfo)')
+              .prev-btn.glyphicon.glyphicon-chevron-left(ng-click='prevImage(moreInfo)')
+            p.description {{ moreInfo.description }}
+            | More Info About the {{ moreInfo.name }}
+            | {{ moreInfo.moreInfo }}
+          .more-over-back(ng-click="hideOverImage()", ng-show='showingOverImage')
+          .more-over-image.image-switcher(ng-show='showingOverImage')
+            img(ng-src="{{ moreInfo.images[moreInfo.selImage] }}")
+            .next-btn.glyphicon.glyphicon-chevron-right(ng-click='nextImage(moreInfo)')
+            .prev-btn.glyphicon.glyphicon-chevron-left(ng-click='prevImage(moreInfo)')
+    .quiz.page(ng-switch-when="Quiz", ng-switch='!!quizStatus.terms.length')
+      .no-terms(ng-switch-when='false')
+        h1 You have mastered all of the terms for this quiz!
+        p Study for a different quiz or click "clear" at the top to reset your mastery.
+      .quiz-pages(ng-switch='quizStatus.page', ng-switch-default)
+        +quizPages('quizStatus')
+    .midterm(ng-switch-when="Midterm", ng-switch='!!midtermStatus && midtermStatus.terms.length')
+      .midterm-picker(ng-switch-when='false')
+        .no-terms(ng-show='midtermStatus && !midtermStatus.terms.length')
+          h1 You have mastered all of the terms for this selection of quizzes!
+          p Select different quizzes or click "clear" at the top to reset your mastery.
+        h1.title Select Multiple Quizes to study at the same time
+        .picker
+          ul.quizes
+            li(ng-repeat='quiz in quizes')
+              label
+                input(type='checkbox', ng-model='quiz.midtermSelected')
+                span.name {{ quiz.name }}
+          .options
+            .select
+              .btn.btn-primary(ng-click='selectAllQuizes()') All
+              .btn.btn-primary(ng-click='selectNoQuizes()') None
+            .btn.btn-primary.start-midterm(ng-click='startMidterm()', ng-disabled='selectedQuizes().length < 2') Start Midterm
+      .quiz-pages(ng-switch='midtermStatus.page', ng-switch-default)
+        +quizPages('midtermStatus')
+    .flashcards(ng-switch-when="Flashcards")
+      .wrapper
+        .count
+          span Term {{ flash.num+1 }}/{{ flash.terms.length }}
+          .btn-group
+            .btn.btn-default(ng-repeat='f in filters', ng-click='flashFilterBy(f)', ng-class='{ active: f.name == flash.filter }') {{ f.title }}
+          .btn.btn-primary(ng-click="shuffleFlashcards()") Reshuffle
+        .card
+          .prev(ng-click='prevFlash($event)')
+            i.glyphicon.glyphicon-chevron-left
+          .card-inner
+            .main-image(ng-click='flipFlash()', ng-hide="flash.flipped")
+              img(ng-src="{{ flash.term.images[flash.term.selImage] }}")
+              .click-to-flip Click to flip
+            .flip-side(ng-show="flash.flipped")
+              // img.spacer(ng-src="{{ flash.term.images[flash.term.selImage] }}")
+              .top
+                .name {{ flash.term.name }}
+                .description {{ flash.term.description }}
+              .bottom
+                .text
+                  .more {{ flash.term.moreInfo }}
+                .image
+                  .big-image.image-switcher
+                    img(ng-src="{{ flash.term.images[flash.term.selImage] }}", ng-click='showQOverImage(flash)')
+                    .next-btn.glyphicon.glyphicon-chevron-right(ng-click='nextImage(flash.term)')
+                    .prev-btn.glyphicon.glyphicon-chevron-left(ng-click='prevImage(flash.term)')
+              .quiz-over-back(ng-click="hideQOverImage(flash)", ng-show='flash.showingOverImage')
+              .quiz-over-image.image-switcher(ng-show='flash.showingOverImage')
+                img(ng-src="{{ flash.term.images[flash.term.selImage] }}")
+                .next-btn.glyphicon.glyphicon-chevron-right(ng-click='nextImage(flash.term, "selImage")')
+                .prev-btn.glyphicon.glyphicon-chevron-left(ng-click='prevImage(flash.term, "selImage")')
+          .next(ng-click='nextFlash($event)')
+            i.glyphicon.glyphicon-chevron-right

@@ -1,0 +1,17 @@
+{
+  "name": "Quiznatomy",
+  "repo": "jaredly/quiznatomy",
+  "description": "Anatomy Quizzing Solution, made with JazzUI",
+  "version": "0.0.1",
+  "keywords": [],
+  "dependencies": {
+    "jaredly/xon": "*"
+  },
+  "development": {},
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": [
+    "proto.js",
+    "index.js"
+  ]
+}
